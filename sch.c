@@ -9,6 +9,7 @@
 #include <linux/sched.h>
 #include <linux/kallsyms.h>
 #include <linux/syscalls.h>
+#include <linux/fdtable.h>
 
 /* SMP handling */
 #ifdef X86_64
@@ -41,6 +42,7 @@
 static unsigned long *sys_call_table;
 static typeof(sys_read) *orig_read;
 static char *target = "sch-test";
+static char *target_file = "README.md";
 
 
 static void set_addr_rw(unsigned long _addr)
@@ -61,16 +63,79 @@ static void set_addr_ro(unsigned long _addr)
 }
 
 
+static inline const char *basename(const char *hname)
+{
+	char *split;
+
+	hname = strim((char *)hname);
+	for (split = strstr(hname, "/"); split; split = strstr(hname, "/"))
+		hname = split + 1;
+
+	return hname;
+}
+
+static int is_target(int fd)
+{
+	char task_comm[TASK_COMM_LEN];
+	struct files_struct *files;
+	char *tmp;
+	char *pathname;
+	struct file *file;
+	struct path *path;
+
+	get_task_comm(task_comm, current);
+	files = current->files;
+
+	/* Check process name */
+	if (strncmp(task_comm, target, TASK_COMM_LEN))
+		return 0;
+
+	/* Check file name */
+	spin_lock(&files->file_lock);
+	file = fcheck_files(files, fd);
+	if (!file) {
+		spin_unlock(&files->file_lock);
+		return 0;
+	}
+
+	path = &file->f_path;
+	path_get(path);
+	spin_unlock(&files->file_lock);
+
+	tmp = (char *)__get_free_page(GFP_KERNEL);
+	if (!tmp) {
+		path_put(path);
+		return 0;
+	}
+
+	pathname = d_path(path, tmp, PAGE_SIZE);
+	path_put(path);
+
+	if (IS_ERR(pathname)) {
+		free_page((unsigned long)tmp);
+		return 0;
+	}
+
+	pr_info("sch: is_target [%s]\n", pathname);
+
+	if (strncmp(basename(pathname), target_file, strlen(target_file))) {
+		free_page((unsigned long)tmp);
+		return 0;
+	}
+
+	/* Here we are */
+	free_page((unsigned long)tmp);
+	return 1;
+
+}
 
 asmlinkage long my_read(int fd, char __user *buf, size_t count)
 {
 	unsigned char kbuf[32];
-	char task_comm[TASK_COMM_LEN];
 
- 	get_task_comm(task_comm, current);
-
-	/* Only respond to the test program */
-	if (!strncmp(task_comm, target, TASK_COMM_LEN)) {
+	/* Only respond to the test program with the target file */
+	if (is_target(fd)) {
+		pr_info("sch: my_read - intercept target\n");
 		memset(kbuf, '7', sizeof(kbuf));
 		copy_to_user(buf, kbuf, sizeof(kbuf));
 		return sizeof(kbuf);
