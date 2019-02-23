@@ -20,8 +20,9 @@ endif
 
 
 PWD	:= $(shell pwd)
+MOD	:= sch
 
-obj-m += sch.o
+obj-m += $(MOD).o
 
 all:
 	make -C $(KDIR) CFLAGS=-D$(KDEF) M=$(PWD) modules
