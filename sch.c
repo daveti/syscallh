@@ -8,20 +8,27 @@
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/sched.h>
+#include <linux/kallsyms.h>
 
+static unsigned long *syscall_table;
 
 static int __init sch_init(void)
 {
-	//int ret;
-
 	pr_info("sch: Entering: %s\n", __func__);
+
+	syscall_table = (void *)kallsyms_lookup_name("sys_call_table");
+	if (!syscall_table) {
+		pr_err("sch: Couldn't look up sys_call_table\n");
+		return -1;
+	}
+	pr_info("sch: syscall_table [%p]\n", syscall_table);
 
 	return 0;
 }
 
 static void __exit sch_exit(void)
 {
-	pr_info("exiting sch module\n");
+	pr_info("sch: exiting sch module\n");
 }
 
 module_init(sch_init);
