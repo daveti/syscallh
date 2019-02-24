@@ -27,4 +27,4 @@ obj-m += $(MOD).o
 all:
 	make -C $(KDIR) CFLAGS=-D$(KDEF) M=$(PWD) modules
 clean:
-	make -C $(KDIR) CFLAGS=-D$(KDEF)  M=$(PWD) clean
+	make -C $(KDIR) CFLAGS=-D$(KDEF) M=$(PWD) clean

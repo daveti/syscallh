@@ -10,6 +10,8 @@
 #include <linux/kallsyms.h>
 #include <linux/syscalls.h>
 #include <linux/fdtable.h>
+//#include <linux/set_memory.h> /* newer kernel version */
+#include <asm/cacheflush.h>	/* kernel 4.4 */
 
 /* SMP handling */
 #ifdef X86_64
@@ -47,19 +49,31 @@ static char *target_file = "README.md";
 
 static void set_addr_rw(unsigned long _addr)
 {
+#ifdef X86_64
 	unsigned int level;
 	pte_t *pte = lookup_address(_addr, &level);
 
 	if (pte->pte &~ _PAGE_RW)
 		pte->pte |= _PAGE_RW;
+#elif AARCH64
+	set_memory_rw(_addr, 1);
+#else
+	return;
+#endif
 }
 
 static void set_addr_ro(unsigned long _addr)
 {
+#ifdef X86_64
 	unsigned int level;
 	pte_t *pte = lookup_address(_addr, &level);
 
 	pte->pte = pte->pte &~_PAGE_RW;
+#elif AARCH64
+	set_memory_ro(_addr, 1);
+#else
+	return;
+#endif
 }
 
 
