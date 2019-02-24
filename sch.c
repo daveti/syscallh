@@ -26,17 +26,14 @@
 		write_cr0(__cr0); \
 		preempt_enable(); \
 	} while (0)
-#elif  AARCH64
+#endif
+
+#ifdef AARCH64
 #define SMP_UPDATE(x) \
 	do { \
 		preemtp_disable(); \
 		x; \
 		preempt_enable(); \
-	} while (0)
-#else
-#define SMP_UPDATE(x) \
-	do { \
-		x; \
 	} while (0)
 #endif
 
@@ -55,10 +52,11 @@ static void set_addr_rw(unsigned long _addr)
 
 	if (pte->pte &~ _PAGE_RW)
 		pte->pte |= _PAGE_RW;
-#elif AARCH64
+#endif
+
+#ifdef AARCH64
 	set_memory_rw(_addr, 1);
-#else
-	return;
+	//return;
 #endif
 }
 
@@ -69,10 +67,11 @@ static void set_addr_ro(unsigned long _addr)
 	pte_t *pte = lookup_address(_addr, &level);
 
 	pte->pte = pte->pte &~_PAGE_RW;
-#elif AARCH64
+#endif
+
+#ifdef AARCH64
 	set_memory_ro(_addr, 1);
-#else
-	return;
+	//return;
 #endif
 }
 
@@ -187,6 +186,13 @@ static int __init sch_init(void)
 	}
 	pr_info("sch: sys_call_table [%p]\n", sys_call_table);
 
+#ifdef X86_64
+	pr_info("sch: arch x86_64\n");
+#endif
+
+#ifdef AARCH64
+	pr_info("sch: arch aarch64\n");
+#endif
 	syscall_hijack();
 
 	return 0;
