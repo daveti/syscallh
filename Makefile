@@ -24,7 +24,9 @@ MOD	:= sch
 
 obj-m += $(MOD).o
 
+EXTRA_CFLAGS	:= -D $(KDEF)
+
 all:
-	make -C $(KDIR) CFLAGS=-D$(KDEF) M=$(PWD) modules
+	make -C $(KDIR) M=$(PWD) modules
 clean:
-	make -C $(KDIR) CFLAGS=-D$(KDEF) M=$(PWD) clean
+	make -C $(KDIR) M=$(PWD) clean

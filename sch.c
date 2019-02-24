@@ -26,14 +26,17 @@
 		write_cr0(__cr0); \
 		preempt_enable(); \
 	} while (0)
-#endif
-
-#ifdef AARCH64
+#elif AARCH64
 #define SMP_UPDATE(x) \
 	do { \
-		preemtp_disable(); \
+		preempt_disable(); \
 		x; \
 		preempt_enable(); \
+	} while (0)
+#else
+#define	SMP_UPDATE(x) \
+	do { \
+		x; \
 	} while (0)
 #endif
 
@@ -52,11 +55,14 @@ static void set_addr_rw(unsigned long _addr)
 
 	if (pte->pte &~ _PAGE_RW)
 		pte->pte |= _PAGE_RW;
-#endif
-
-#ifdef AARCH64
-	set_memory_rw(_addr, 1);
-	//return;
+#elif AARCH64
+	//set_memory_rw(_addr, 1);
+	/* set_memory_X is not exported
+	 * but fortunately I dont need it on my board...
+	 */
+	return;
+#else
+	return;
 #endif
 }
 
@@ -67,11 +73,11 @@ static void set_addr_ro(unsigned long _addr)
 	pte_t *pte = lookup_address(_addr, &level);
 
 	pte->pte = pte->pte &~_PAGE_RW;
-#endif
-
-#ifdef AARCH64
-	set_memory_ro(_addr, 1);
-	//return;
+#elif AARCH64
+	//set_memory_ro(_addr, 1);
+	return;
+#else
+	return;
 #endif
 }
 
@@ -188,10 +194,10 @@ static int __init sch_init(void)
 
 #ifdef X86_64
 	pr_info("sch: arch x86_64\n");
-#endif
-
-#ifdef AARCH64
+#elif AARCH64
 	pr_info("sch: arch aarch64\n");
+#else
+	pr_info("sch: arch unsupported\n");
 #endif
 	syscall_hijack();
 
