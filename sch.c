@@ -59,6 +59,7 @@ static void set_addr_rw(unsigned long _addr)
 	//set_memory_rw(_addr, 1);
 	/* set_memory_X is not exported
 	 * but fortunately I dont need it on my board...
+	 * https://lxr.missinglinkelectronics.com/linux/arch/arm64/mm/pageattr.c
 	 */
 	return;
 #else
